@@ -4,6 +4,7 @@ import { Product } from "../_common/entities/product.entity";
 import { CreateCartDto } from "./dto/create-cart.dto";
 import { UpdateCartDto } from "./dto/update-cart.dto";
 import { CartQueryDto } from "./dto/cart-query.dto";
+import { CartListQueryDto } from "./dto/cart-list-query.dto";
 export interface CartItemWithProduct {
     id: number;
     quantity: number;
@@ -15,6 +16,13 @@ export interface PaginatedCartItems {
     totalItems: number;
     totalPages: number;
     items: CartItemWithProduct[];
+}
+export interface PaginatedCarts {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    items: Cart[];
 }
 export declare class CartService {
     private readonly cartRepository;
@@ -34,5 +42,9 @@ export declare class CartService {
     addItemToCart(token: string, productId: number, quantity: number): Promise<Cart>;
     removeItemFromCart(token: string, productId: number): Promise<Cart>;
     updateItemQuantity(token: string, productId: number, quantity: number): Promise<Cart>;
-    getAllCarts(): Promise<Cart[]>;
+    getAllCarts(query: CartListQueryDto): Promise<PaginatedCarts>;
+    deleteAllCarts(): Promise<{
+        message: string;
+        deletedCount: number;
+    }>;
 }

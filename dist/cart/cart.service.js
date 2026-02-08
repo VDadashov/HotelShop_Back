@@ -149,8 +149,31 @@ let CartService = class CartService {
         cart.items[itemIndex].quantity = quantity;
         return await this.cartRepository.save(cart);
     }
-    async getAllCarts() {
-        return await this.cartRepository.find();
+    async getAllCarts(query) {
+        const { page = 1, limit = 10 } = query;
+        const [items, totalItems] = await this.cartRepository.findAndCount({
+            order: { createdAt: "DESC" },
+            skip: (page - 1) * limit,
+            take: limit,
+        });
+        return {
+            page,
+            limit,
+            totalItems,
+            totalPages: Math.ceil(totalItems / limit),
+            items,
+        };
+    }
+    async deleteAllCarts() {
+        const result = await this.cartRepository
+            .createQueryBuilder()
+            .delete()
+            .from(cart_entity_1.Cart)
+            .execute();
+        return {
+            message: "Bütün səbətlər uğurla silindi",
+            deletedCount: result.affected ?? 0,
+        };
     }
 };
 exports.CartService = CartService;

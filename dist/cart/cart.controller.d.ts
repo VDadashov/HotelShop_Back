@@ -2,11 +2,16 @@ import { CartService } from "./cart.service";
 import { CreateCartDto } from "./dto/create-cart.dto";
 import { UpdateCartDto } from "./dto/update-cart.dto";
 import { CartQueryDto } from "./dto/cart-query.dto";
+import { CartListQueryDto } from "./dto/cart-list-query.dto";
 export declare class CartController {
     private readonly cartService;
     constructor(cartService: CartService);
     getCartItems(query: CartQueryDto): Promise<import("./cart.service").PaginatedCartItems>;
-    getAllCarts(): Promise<import("../_common/entities/cart.entity").Cart[]>;
+    getAllCarts(query: CartListQueryDto): Promise<import("./cart.service").PaginatedCarts>;
+    deleteAllCarts(): Promise<{
+        message: string;
+        deletedCount: number;
+    }>;
     createCart(createCartDto: CreateCartDto): Promise<{
         token: string;
     }>;

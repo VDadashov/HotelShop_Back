@@ -19,6 +19,7 @@ const cart_service_1 = require("./cart.service");
 const create_cart_dto_1 = require("./dto/create-cart.dto");
 const update_cart_dto_1 = require("./dto/update-cart.dto");
 const cart_query_dto_1 = require("./dto/cart-query.dto");
+const cart_list_query_dto_1 = require("./dto/cart-list-query.dto");
 let CartController = class CartController {
     cartService;
     constructor(cartService) {
@@ -27,8 +28,11 @@ let CartController = class CartController {
     async getCartItems(query) {
         return await this.cartService.getCartItems(query);
     }
-    async getAllCarts() {
-        return await this.cartService.getAllCarts();
+    async getAllCarts(query) {
+        return await this.cartService.getAllCarts(query);
+    }
+    async deleteAllCarts() {
+        return await this.cartService.deleteAllCarts();
     }
     async createCart(createCartDto) {
         return await this.cartService.createCart(createCartDto);
@@ -141,15 +145,61 @@ __decorate([
 ], CartController.prototype, "getCartItems", null);
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: "Bütün səbətləri gətir" }),
+    (0, swagger_1.ApiOperation)({ summary: "Bütün səbətləri səhifələmə ilə gətir" }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: "Bütün səbətlərin siyahısı",
+        description: "Səhifələnmiş səbət siyahısı",
+        schema: {
+            type: "object",
+            properties: {
+                page: { type: "number", example: 1 },
+                limit: { type: "number", example: 10 },
+                totalItems: { type: "number", example: 25 },
+                totalPages: { type: "number", example: 3 },
+                items: {
+                    type: "array",
+                    items: { type: "object" },
+                },
+            },
+        },
+    }),
+    (0, swagger_1.ApiQuery)({
+        name: "page",
+        required: false,
+        type: Number,
+        description: "Səhifə nömrəsi",
+        example: 1,
+    }),
+    (0, swagger_1.ApiQuery)({
+        name: "limit",
+        required: false,
+        type: Number,
+        description: "Hər səhifədə səbət sayı",
+        example: 10,
+    }),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [cart_list_query_dto_1.CartListQueryDto]),
+    __metadata("design:returntype", Promise)
+], CartController.prototype, "getAllCarts", null);
+__decorate([
+    (0, common_1.Delete)(),
+    (0, swagger_1.ApiOperation)({ summary: "Bütün səbətləri sil" }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: "Bütün səbətlər uğurla silindi",
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "Bütün səbətlər uğurla silindi" },
+                deletedCount: { type: "number", example: 10 },
+            },
+        },
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
-], CartController.prototype, "getAllCarts", null);
+], CartController.prototype, "deleteAllCarts", null);
 __decorate([
     (0, common_1.Post)("items"),
     (0, swagger_1.ApiOperation)({ summary: "Yeni səbət yaradıb yalnız token qaytar" }),

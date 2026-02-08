@@ -11,6 +11,7 @@ import { Product } from "../_common/entities/product.entity";
 import { CreateCartDto } from "./dto/create-cart.dto";
 import { UpdateCartDto } from "./dto/update-cart.dto";
 import { CartQueryDto } from "./dto/cart-query.dto";
+import { CartListQueryDto } from "./dto/cart-list-query.dto";
 
 export interface CartItemWithProduct {
   id: number;
@@ -24,6 +25,14 @@ export interface PaginatedCartItems {
   totalItems: number;
   totalPages: number;
   items: CartItemWithProduct[];
+}
+
+export interface PaginatedCarts {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  items: Cart[];
 }
 
 @Injectable()
@@ -223,7 +232,34 @@ export class CartService {
     return await this.cartRepository.save(cart);
   }
 
-  async getAllCarts(): Promise<Cart[]> {
-    return await this.cartRepository.find();
+  async getAllCarts(query: CartListQueryDto): Promise<PaginatedCarts> {
+    const { page = 1, limit = 10 } = query;
+
+    const [items, totalItems] = await this.cartRepository.findAndCount({
+      order: { createdAt: "DESC" },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      page,
+      limit,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+      items,
+    };
+  }
+
+  async deleteAllCarts(): Promise<{ message: string; deletedCount: number }> {
+    const result = await this.cartRepository
+      .createQueryBuilder()
+      .delete()
+      .from(Cart)
+      .execute();
+
+    return {
+      message: "Bütün səbətlər uğurla silindi",
+      deletedCount: result.affected ?? 0,
+    };
   }
 }

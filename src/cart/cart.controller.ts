@@ -21,6 +21,7 @@ import { CartService } from "./cart.service";
 import { CreateCartDto } from "./dto/create-cart.dto";
 import { UpdateCartDto } from "./dto/update-cart.dto";
 import { CartQueryDto } from "./dto/cart-query.dto";
+import { CartListQueryDto } from "./dto/cart-list-query.dto";
 
 @ApiTags("Cart")
 @Controller("cart")
@@ -115,13 +116,57 @@ export class CartController {
   }
 
   @Get()
-  @ApiOperation({ summary: "Bütün səbətləri gətir" })
+  @ApiOperation({ summary: "Bütün səbətləri səhifələmə ilə gətir" })
   @ApiResponse({
     status: 200,
-    description: "Bütün səbətlərin siyahısı",
+    description: "Səhifələnmiş səbət siyahısı",
+    schema: {
+      type: "object",
+      properties: {
+        page: { type: "number", example: 1 },
+        limit: { type: "number", example: 10 },
+        totalItems: { type: "number", example: 25 },
+        totalPages: { type: "number", example: 3 },
+        items: {
+          type: "array",
+          items: { type: "object" },
+        },
+      },
+    },
   })
-  async getAllCarts() {
-    return await this.cartService.getAllCarts();
+  @ApiQuery({
+    name: "page",
+    required: false,
+    type: Number,
+    description: "Səhifə nömrəsi",
+    example: 1,
+  })
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    type: Number,
+    description: "Hər səhifədə səbət sayı",
+    example: 10,
+  })
+  async getAllCarts(@Query() query: CartListQueryDto) {
+    return await this.cartService.getAllCarts(query);
+  }
+
+  @Delete()
+  @ApiOperation({ summary: "Bütün səbətləri sil" })
+  @ApiResponse({
+    status: 200,
+    description: "Bütün səbətlər uğurla silindi",
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string", example: "Bütün səbətlər uğurla silindi" },
+        deletedCount: { type: "number", example: 10 },
+      },
+    },
+  })
+  async deleteAllCarts() {
+    return await this.cartService.deleteAllCarts();
   }
 
   @Post("items")
