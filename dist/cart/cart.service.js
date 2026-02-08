@@ -30,7 +30,7 @@ let CartService = class CartService {
         const { token, page = 1, limit = 10 } = query;
         const cart = await this.cartRepository.findOne({ where: { token } });
         if (!cart) {
-            throw new common_1.NotFoundException('Səbət tapılmadı');
+            throw new common_1.NotFoundException("Səbət tapılmadı");
         }
         if (!Array.isArray(cart.items) || cart.items.length === 0) {
             return {
@@ -41,13 +41,13 @@ let CartService = class CartService {
                 items: [],
             };
         }
-        const itemIds = cart.items.map(item => item.id);
+        const itemIds = cart.items.map((item) => item.id);
         const products = await this.productRepository.find({
             where: { id: (0, typeorm_2.In)(itemIds) },
-            select: ['id', 'name', 'mainImg', 'description'],
+            select: ["id", "name", "mainImg", "description"],
         });
-        const cartDetails = cart.items.map(item => {
-            const product = products.find(p => p.id === item.id);
+        const cartDetails = cart.items.map((item) => {
+            const product = products.find((p) => p.id === item.id);
             return {
                 id: item.id,
                 quantity: item.quantity,
@@ -67,19 +67,19 @@ let CartService = class CartService {
     }
     async createCart(createCartDto) {
         const { items } = createCartDto;
-        const productIds = items.map(item => item.id);
+        const productIds = items.map((item) => item.id);
         const existingProducts = await this.productRepository.find({
             where: { id: (0, typeorm_2.In)(productIds) },
-            select: ['id'],
+            select: ["id"],
         });
-        const existingProductIds = existingProducts.map(p => p.id);
-        const missingProductIds = productIds.filter(id => !existingProductIds.includes(id));
+        const existingProductIds = existingProducts.map((p) => p.id);
+        const missingProductIds = productIds.filter((id) => !existingProductIds.includes(id));
         if (missingProductIds.length > 0) {
-            throw new common_1.BadRequestException(`Bu məhsullar tapılmadı: ${missingProductIds.join(', ')}`);
+            throw new common_1.BadRequestException(`Bu məhsullar tapılmadı: ${missingProductIds.join(", ")}`);
         }
-        const invalidItems = items.filter(item => item.quantity <= 0);
+        const invalidItems = items.filter((item) => item.quantity <= 0);
         if (invalidItems.length > 0) {
-            throw new common_1.BadRequestException('Məhsul sayı 0-dan böyük olmalıdır');
+            throw new common_1.BadRequestException("Məhsul sayı 0-dan böyük olmalıdır");
         }
         const token = (0, uuid_1.v4)();
         const cart = this.cartRepository.create({
@@ -94,36 +94,36 @@ let CartService = class CartService {
         const { token, isConfirmed } = updateCartDto;
         const cart = await this.cartRepository.findOne({ where: { token } });
         if (!cart) {
-            throw new common_1.NotFoundException('Səbət tapılmadı');
+            throw new common_1.NotFoundException("Səbət tapılmadı");
         }
         cart.isConfirmed = isConfirmed;
         await this.cartRepository.save(cart);
-        return { message: 'Səbət statusu uğurla yeniləndi' };
+        return { message: "Səbət statusu uğurla yeniləndi" };
     }
     async findCartByToken(token) {
         const cart = await this.cartRepository.findOne({ where: { token } });
         if (!cart) {
-            throw new common_1.NotFoundException('Səbət tapılmadı');
+            throw new common_1.NotFoundException("Səbət tapılmadı");
         }
         return cart;
     }
     async deleteCart(token) {
         const cart = await this.findCartByToken(token);
         await this.cartRepository.remove(cart);
-        return { message: 'Səbət uğurla silindi' };
+        return { message: "Səbət uğurla silindi" };
     }
     async addItemToCart(token, productId, quantity) {
         const cart = await this.findCartByToken(token);
         const product = await this.productRepository.findOne({
-            where: { id: productId }
+            where: { id: productId },
         });
         if (!product) {
-            throw new common_1.NotFoundException('Məhsul tapılmadı');
+            throw new common_1.NotFoundException("Məhsul tapılmadı");
         }
         if (quantity <= 0) {
-            throw new common_1.BadRequestException('Məhsul sayı 0-dan böyük olmalıdır');
+            throw new common_1.BadRequestException("Məhsul sayı 0-dan böyük olmalıdır");
         }
-        const existingItemIndex = cart.items.findIndex(item => item.id === productId);
+        const existingItemIndex = cart.items.findIndex((item) => item.id === productId);
         if (existingItemIndex > -1) {
             cart.items[existingItemIndex].quantity += quantity;
         }
@@ -134,20 +134,23 @@ let CartService = class CartService {
     }
     async removeItemFromCart(token, productId) {
         const cart = await this.findCartByToken(token);
-        cart.items = cart.items.filter(item => item.id !== productId);
+        cart.items = cart.items.filter((item) => item.id !== productId);
         return await this.cartRepository.save(cart);
     }
     async updateItemQuantity(token, productId, quantity) {
         const cart = await this.findCartByToken(token);
         if (quantity <= 0) {
-            throw new common_1.BadRequestException('Məhsul sayı 0-dan böyük olmalıdır');
+            throw new common_1.BadRequestException("Məhsul sayı 0-dan böyük olmalıdır");
         }
-        const itemIndex = cart.items.findIndex(item => item.id === productId);
+        const itemIndex = cart.items.findIndex((item) => item.id === productId);
         if (itemIndex === -1) {
-            throw new common_1.NotFoundException('Məhsul səbətdə tapılmadı');
+            throw new common_1.NotFoundException("Məhsul səbətdə tapılmadı");
         }
         cart.items[itemIndex].quantity = quantity;
         return await this.cartRepository.save(cart);
+    }
+    async getAllCarts() {
+        return await this.cartRepository.find();
     }
 };
 exports.CartService = CartService;

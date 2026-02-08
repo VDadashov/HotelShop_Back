@@ -1,12 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
-import { Cart, CartItem } from '../_common/entities/cart.entity';
-import { Product } from '../_common/entities/product.entity';
-import { CreateCartDto } from './dto/create-cart.dto';
-import { UpdateCartDto } from './dto/update-cart.dto';
-import { CartQueryDto } from './dto/cart-query.dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, In } from "typeorm";
+import { v4 as uuidv4 } from "uuid";
+import { Cart, CartItem } from "../_common/entities/cart.entity";
+import { Product } from "../_common/entities/product.entity";
+import { CreateCartDto } from "./dto/create-cart.dto";
+import { UpdateCartDto } from "./dto/update-cart.dto";
+import { CartQueryDto } from "./dto/cart-query.dto";
 
 export interface CartItemWithProduct {
   id: number;
@@ -37,7 +41,7 @@ export class CartService {
     // Cart-ı tap
     const cart = await this.cartRepository.findOne({ where: { token } });
     if (!cart) {
-      throw new NotFoundException('Səbət tapılmadı');
+      throw new NotFoundException("Səbət tapılmadı");
     }
 
     // Boş səbət yoxlanışı
@@ -52,17 +56,17 @@ export class CartService {
     }
 
     // Məhsul ID-lərini topla
-    const itemIds = cart.items.map(item => item.id);
+    const itemIds = cart.items.map((item) => item.id);
 
     // Məhsulları gətir
     const products = await this.productRepository.find({
       where: { id: In(itemIds) },
-      select: ['id', 'name', 'mainImg', 'description'],
+      select: ["id", "name", "mainImg", "description"],
     });
 
     // Cart məlumatları ilə məhsul məlumatlarını birləşdir
-    const cartDetails: CartItemWithProduct[] = cart.items.map(item => {
-      const product = products.find(p => p.id === item.id);
+    const cartDetails: CartItemWithProduct[] = cart.items.map((item) => {
+      const product = products.find((p) => p.id === item.id);
       return {
         id: item.id,
         quantity: item.quantity,
@@ -88,25 +92,27 @@ export class CartService {
     const { items } = createCartDto;
 
     // Məhsulların mövcudluğunu yoxla
-    const productIds = items.map(item => item.id);
+    const productIds = items.map((item) => item.id);
     const existingProducts = await this.productRepository.find({
       where: { id: In(productIds) },
-      select: ['id'],
+      select: ["id"],
     });
 
-    const existingProductIds = existingProducts.map(p => p.id);
-    const missingProductIds = productIds.filter(id => !existingProductIds.includes(id));
+    const existingProductIds = existingProducts.map((p) => p.id);
+    const missingProductIds = productIds.filter(
+      (id) => !existingProductIds.includes(id),
+    );
 
     if (missingProductIds.length > 0) {
       throw new BadRequestException(
-        `Bu məhsullar tapılmadı: ${missingProductIds.join(', ')}`
+        `Bu məhsullar tapılmadı: ${missingProductIds.join(", ")}`,
       );
     }
 
     // Quantity-lərin düzgünlüyünü yoxla
-    const invalidItems = items.filter(item => item.quantity <= 0);
+    const invalidItems = items.filter((item) => item.quantity <= 0);
     if (invalidItems.length > 0) {
-      throw new BadRequestException('Məhsul sayı 0-dan böyük olmalıdır');
+      throw new BadRequestException("Məhsul sayı 0-dan böyük olmalıdır");
     }
 
     // Token yaradıb Cart-ı saxla
@@ -127,20 +133,20 @@ export class CartService {
     // Cart-ı tap
     const cart = await this.cartRepository.findOne({ where: { token } });
     if (!cart) {
-      throw new NotFoundException('Səbət tapılmadı');
+      throw new NotFoundException("Səbət tapılmadı");
     }
 
     // Status-u yenilə
     cart.isConfirmed = isConfirmed;
     await this.cartRepository.save(cart);
 
-    return { message: 'Səbət statusu uğurla yeniləndi' };
+    return { message: "Səbət statusu uğurla yeniləndi" };
   }
 
   async findCartByToken(token: string): Promise<Cart> {
     const cart = await this.cartRepository.findOne({ where: { token } });
     if (!cart) {
-      throw new NotFoundException('Səbət tapılmadı');
+      throw new NotFoundException("Səbət tapılmadı");
     }
     return cart;
   }
@@ -148,31 +154,33 @@ export class CartService {
   async deleteCart(token: string): Promise<{ message: string }> {
     const cart = await this.findCartByToken(token);
     await this.cartRepository.remove(cart);
-    return { message: 'Səbət uğurla silindi' };
+    return { message: "Səbət uğurla silindi" };
   }
 
   async addItemToCart(
-    token: string, 
-    productId: number, 
-    quantity: number
+    token: string,
+    productId: number,
+    quantity: number,
   ): Promise<Cart> {
     const cart = await this.findCartByToken(token);
 
     // Məhsulun mövcudluğunu yoxla
-    const product = await this.productRepository.findOne({ 
-      where: { id: productId } 
+    const product = await this.productRepository.findOne({
+      where: { id: productId },
     });
     if (!product) {
-      throw new NotFoundException('Məhsul tapılmadı');
+      throw new NotFoundException("Məhsul tapılmadı");
     }
 
     if (quantity <= 0) {
-      throw new BadRequestException('Məhsul sayı 0-dan böyük olmalıdır');
+      throw new BadRequestException("Məhsul sayı 0-dan böyük olmalıdır");
     }
 
     // Məhsul səbətdə varmı yoxla
-    const existingItemIndex = cart.items.findIndex(item => item.id === productId);
-    
+    const existingItemIndex = cart.items.findIndex(
+      (item) => item.id === productId,
+    );
+
     if (existingItemIndex > -1) {
       // Mövcud məhsulun sayını artır
       cart.items[existingItemIndex].quantity += quantity;
@@ -188,30 +196,34 @@ export class CartService {
     const cart = await this.findCartByToken(token);
 
     // Məhsulu səbətdən sil
-    cart.items = cart.items.filter(item => item.id !== productId);
-    
+    cart.items = cart.items.filter((item) => item.id !== productId);
+
     return await this.cartRepository.save(cart);
   }
 
   async updateItemQuantity(
-    token: string, 
-    productId: number, 
-    quantity: number
+    token: string,
+    productId: number,
+    quantity: number,
   ): Promise<Cart> {
     const cart = await this.findCartByToken(token);
 
     if (quantity <= 0) {
-      throw new BadRequestException('Məhsul sayı 0-dan böyük olmalıdır');
+      throw new BadRequestException("Məhsul sayı 0-dan böyük olmalıdır");
     }
 
     // Məhsulu tap və quantity-ni yenilə
-    const itemIndex = cart.items.findIndex(item => item.id === productId);
+    const itemIndex = cart.items.findIndex((item) => item.id === productId);
     if (itemIndex === -1) {
-      throw new NotFoundException('Məhsul səbətdə tapılmadı');
+      throw new NotFoundException("Məhsul səbətdə tapılmadı");
     }
 
     cart.items[itemIndex].quantity = quantity;
-    
+
     return await this.cartRepository.save(cart);
+  }
+
+  async getAllCarts(): Promise<Cart[]> {
+    return await this.cartRepository.find();
   }
 }
