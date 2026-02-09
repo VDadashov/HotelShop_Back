@@ -17,6 +17,15 @@ export interface CartItemWithProduct {
   id: number;
   quantity: number;
   product: Product | null;
+  productName?: Product["name"] | null;
+  productImage?: Product["mainImg"] | null;
+}
+
+export interface CartItemWithDetails {
+  id: number;
+  quantity: number;
+  productName: Product["name"] | null;
+  productImage: Product["mainImg"] | null;
 }
 
 export interface PaginatedCartItems {
@@ -32,8 +41,12 @@ export interface PaginatedCarts {
   limit: number;
   totalItems: number;
   totalPages: number;
-  items: Cart[];
+  items: CartWithItemDetails[];
 }
+
+export type CartWithItemDetails = Omit<Cart, "items"> & {
+  items: CartItemWithDetails[];
+};
 
 @Injectable()
 export class CartService {
@@ -93,7 +106,11 @@ export class CartService {
       limit,
       totalItems: cartDetails.length,
       totalPages: Math.ceil(cartDetails.length / limit),
-      items: paginatedItems,
+      items: paginatedItems.map((item) => ({
+        ...item,
+        productName: item.product?.name ?? null,
+        productImage: item.product?.mainImg ?? null,
+      })),
     };
   }
 
@@ -241,12 +258,38 @@ export class CartService {
       take: limit,
     });
 
+    const allProductIds = items
+      .flatMap((cart) => cart.items || [])
+      .map((item) => item.id);
+
+    const products = allProductIds.length
+      ? await this.productRepository.find({
+          where: { id: In(allProductIds) },
+          select: ["id", "name", "mainImg"],
+        })
+      : [];
+
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    const cartsWithDetails: CartWithItemDetails[] = items.map((cart) => ({
+      ...cart,
+      items: (cart.items || []).map((item) => {
+        const product = productMap.get(item.id) || null;
+        return {
+          id: item.id,
+          quantity: item.quantity,
+          productName: product?.name ?? null,
+          productImage: product?.mainImg ?? null,
+        };
+      }),
+    }));
+
     return {
       page,
       limit,
       totalItems,
       totalPages: Math.ceil(totalItems / limit),
-      items,
+      items: cartsWithDetails,
     };
   }
 
