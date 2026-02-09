@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Product } from "../_common/entities/product.entity";
@@ -304,18 +308,17 @@ export class ProductService {
       await this.productRepository.remove(product);
       return { message: "Məhsul uğurla silindi" };
     } catch (error) {
-      // Postgres və ya TypeORM error mesajında promo ilə bağlı constraint varsa, onu yoxla
+      console.error("Product delete error:", error);
       if (
         error?.message?.includes("promo") ||
         error?.detail?.includes("promo") ||
         error?.toString().includes("promo")
       ) {
-        throw new Error(
+        throw new ConflictException(
           "Bu məhsul Promo ilə əlaqəlidir və silinə bilməz. Əvvəlcə bağlı promonu silin.",
         );
       }
-      // Əlavə əlaqələr üçün bura əlavə yoxlamalar yazmaq olar
-      throw new Error(
+      throw new ConflictException(
         "Məhsul silinərkən əlaqəli modelə görə silinə bilmədi. Əlaqəli məlumatları silin.",
       );
     }
