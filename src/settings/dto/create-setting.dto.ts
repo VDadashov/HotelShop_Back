@@ -1,5 +1,38 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsDefined, IsNotEmpty, IsString } from "class-validator";
+import {
+  IsDefined,
+  IsNotEmpty,
+  IsObject,
+  IsString,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
+
+class MultilingualTextDto {
+  @ApiProperty({
+    description: "Azərbaycan dilində mətn",
+    example: "HotelShop",
+  })
+  @IsString()
+  @IsNotEmpty()
+  az: string;
+
+  @ApiProperty({
+    description: "İngilis dilində mətn",
+    example: "HotelShop",
+  })
+  @IsString()
+  @IsNotEmpty()
+  en: string;
+
+  @ApiProperty({
+    description: "Rus dilində mətn",
+    example: "HotelShop",
+  })
+  @IsString()
+  @IsNotEmpty()
+  ru: string;
+}
 
 export class CreateSettingDto {
   @ApiProperty({
@@ -11,9 +44,13 @@ export class CreateSettingDto {
   key: string;
 
   @ApiProperty({
-    description: "Setting value (string/object/number)",
-    example: { az: "HotelShop", en: "HotelShop" },
+    description: "Setting value (çoxdilli)",
+    type: MultilingualTextDto,
+    example: { az: "HotelShop", en: "HotelShop", ru: "HotelShop" },
   })
   @IsDefined({ message: "Value tələb olunur" })
-  value: any;
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MultilingualTextDto)
+  value: MultilingualTextDto;
 }
