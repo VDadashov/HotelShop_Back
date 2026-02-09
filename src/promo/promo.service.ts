@@ -10,6 +10,7 @@ import { Product } from "../_common/entities/product.entity";
 import { CreatePromoDto } from "./dto/create-promo.dto";
 import { UpdatePromoDto } from "./dto/update-promo.dto";
 import { PromoQueryDto } from "./dto/promo-query.dto";
+import { I18nService } from "../i18n/i18n.service";
 
 @Injectable()
 export class PromoService {
@@ -18,6 +19,7 @@ export class PromoService {
     private readonly promoRepository: Repository<Promo>,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    private readonly i18n: I18nService,
   ) {}
 
   private resolveImage(promo: Promo): string | null {
@@ -30,7 +32,11 @@ export class PromoService {
     return null;
   }
 
-  async findAll(query: PromoQueryDto): Promise<{
+  async findAll(
+    query: PromoQueryDto,
+    lang?: string,
+    allLanguages?: boolean,
+  ): Promise<{
     data: Promo[];
     total: number;
     page: number;
@@ -39,6 +45,7 @@ export class PromoService {
     const page = query.page || 1;
     const limit = query.limit || 10;
     const skip = (page - 1) * limit;
+    lang = lang || "az";
 
     const queryBuilder = this.promoRepository
       .createQueryBuilder("promo")
@@ -137,17 +144,25 @@ export class PromoService {
 
     // Her promo üçün backgroundImg resolve et
     return {
-      data: promos.map((promo) => ({
-        ...promo,
-        backgroundImg: this.resolveImage(promo),
-      })),
+      data: promos.map((promo) =>
+        this.mapPromoForLanguage(
+          { ...promo, backgroundImg: this.resolveImage(promo) },
+          lang,
+          allLanguages,
+        ),
+      ),
       total,
       page,
       limit,
     };
   }
 
-  async findOne(id: number): Promise<Promo> {
+  async findOne(
+    id: number,
+    lang?: string,
+    allLanguages?: boolean,
+  ): Promise<Promo> {
+    lang = lang || "az";
     const promo = await this.promoRepository.findOne({
       where: { id },
       relations: ["product"],
@@ -158,10 +173,14 @@ export class PromoService {
     }
 
     // backgroundImg resolve et
-    return {
-      ...promo,
-      backgroundImg: this.resolveImage(promo),
-    };
+    return this.mapPromoForLanguage(
+      {
+        ...promo,
+        backgroundImg: this.resolveImage(promo),
+      },
+      lang,
+      allLanguages,
+    );
   }
 
   async create(createPromoDto: CreatePromoDto): Promise<Promo> {
@@ -270,7 +289,11 @@ export class PromoService {
     return { message: "Promo uğurla silindi" };
   }
 
-  async getCurrentPromos(): Promise<Promo[]> {
+  async getCurrentPromos(
+    lang?: string,
+    allLanguages?: boolean,
+  ): Promise<Promo[]> {
+    lang = lang || "az";
     const now = new Date();
 
     const queryBuilder = this.promoRepository
@@ -284,9 +307,33 @@ export class PromoService {
     const promos = await queryBuilder.getMany();
 
     // Her promo üçün backgroundImg resolve et
-    return promos.map((promo) => ({
+    return promos.map((promo) =>
+      this.mapPromoForLanguage(
+        { ...promo, backgroundImg: this.resolveImage(promo) },
+        lang,
+        allLanguages,
+      ),
+    );
+  }
+
+  private mapPromoForLanguage(
+    promo: Promo,
+    lang: string,
+    allLanguages?: boolean,
+  ): Promo {
+    if (allLanguages) {
+      return promo;
+    }
+
+    return {
       ...promo,
-      backgroundImg: this.resolveImage(promo),
-    }));
+      title: this.i18n.translateField(promo.title, lang) as any,
+      subtitle: promo.subtitle
+        ? (this.i18n.translateField(promo.subtitle, lang) as any)
+        : null,
+      description: promo.description
+        ? (this.i18n.translateField(promo.description, lang) as any)
+        : null,
+    };
   }
 }
