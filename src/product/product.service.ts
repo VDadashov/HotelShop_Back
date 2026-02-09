@@ -1,12 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Product } from '../_common/entities/product.entity';
-import { Category } from '../_common/entities/category.entity';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { ProductQueryDto } from './dto/product-query.dto';
-import { I18nService } from '../i18n/i18n.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Product } from "../_common/entities/product.entity";
+import { Category } from "../_common/entities/category.entity";
+import { CreateProductDto } from "./dto/create-product.dto";
+import { UpdateProductDto } from "./dto/update-product.dto";
+import { ProductQueryDto } from "./dto/product-query.dto";
+import { I18nService } from "../i18n/i18n.service";
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -28,21 +28,32 @@ export class ProductService {
     private readonly i18n: I18nService,
   ) {}
 
-  async findAll(query: ProductQueryDto, acceptLanguage?: string): Promise<PaginatedResult<Product>> {
-    const { page = 1, pageSize = 10, categoryId, isActive, searchQuery, sort } = query;
+  async findAll(
+    query: ProductQueryDto,
+    acceptLanguage?: string,
+  ): Promise<PaginatedResult<Product>> {
+    const {
+      page = 1,
+      pageSize = 10,
+      categoryId,
+      isActive,
+      searchQuery,
+      sort,
+    } = query;
     const offset = (page - 1) * pageSize;
 
-    const queryBuilder = this.productRepository.createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category');
+    const queryBuilder = this.productRepository
+      .createQueryBuilder("product")
+      .leftJoinAndSelect("product.category", "category");
 
     // Kateqoriya filtri
     if (categoryId) {
-      queryBuilder.andWhere('product.categoryId = :categoryId', { categoryId });
+      queryBuilder.andWhere("product.categoryId = :categoryId", { categoryId });
     }
 
     // Aktiv status filtri
     if (isActive !== undefined) {
-      queryBuilder.andWhere('product.isActive = :isActive', { isActive });
+      queryBuilder.andWhere("product.isActive = :isActive", { isActive });
     }
 
     // Multilingual axtarış
@@ -51,7 +62,7 @@ export class ProductService {
         // Müəyyən dildə axtarış
         queryBuilder.andWhere(
           `(product.name ->> :lang ILIKE :search OR product.description ->> :lang ILIKE :search)`,
-          { lang: acceptLanguage, search: `%${searchQuery}%` }
+          { lang: acceptLanguage, search: `%${searchQuery}%` },
         );
       } else {
         // Bütün dillərdə axtarış
@@ -62,42 +73,39 @@ export class ProductService {
             product.description ->> 'az' ILIKE :search OR 
             product.description ->> 'en' ILIKE :search OR 
             product.description ->> 'ru' ILIKE :search)`,
-          { search: `%${searchQuery}%` }
+          { search: `%${searchQuery}%` },
         );
       }
     }
 
     // Sıralama
     switch (sort) {
-      case 'az':
+      case "az":
         // A-Z sıralaması üçün sadə yanaşma
-        queryBuilder.orderBy('product.id', 'ASC');
+        queryBuilder.orderBy("product.id", "ASC");
         break;
-      case 'za':
+      case "za":
         // Z-A sıralaması üçün sadə yanaşma
-        queryBuilder.orderBy('product.id', 'DESC');
+        queryBuilder.orderBy("product.id", "DESC");
         break;
-      case 'newest':
-        queryBuilder.orderBy('product.createdAt', 'DESC');
+      case "newest":
+        queryBuilder.orderBy("product.createdAt", "DESC");
         break;
-      case 'oldest':
-        queryBuilder.orderBy('product.createdAt', 'ASC');
+      case "oldest":
+        queryBuilder.orderBy("product.createdAt", "ASC");
         break;
-      case 'most-viewed':
-        queryBuilder.orderBy('product.views', 'DESC');
+      case "most-viewed":
+        queryBuilder.orderBy("product.views", "DESC");
         break;
       default:
-        queryBuilder.orderBy('product.id', 'DESC');
+        queryBuilder.orderBy("product.id", "DESC");
     }
 
     // Ümumi sayı tapaq
     const totalItems = await queryBuilder.getCount();
 
     // Səhifələmə ilə məhsulları gətir
-    const products = await queryBuilder
-      .skip(offset)
-      .take(pageSize)
-      .getMany();
+    const products = await queryBuilder.skip(offset).take(pageSize).getMany();
 
     return {
       data: products,
@@ -110,21 +118,31 @@ export class ProductService {
     };
   }
 
-  async findAllForAdmin(query: ProductQueryDto): Promise<PaginatedResult<Product>> {
-    const { page = 1, pageSize = 10, categoryId, isActive, searchQuery, sort } = query;
+  async findAllForAdmin(
+    query: ProductQueryDto,
+  ): Promise<PaginatedResult<Product>> {
+    const {
+      page = 1,
+      pageSize = 10,
+      categoryId,
+      isActive,
+      searchQuery,
+      sort,
+    } = query;
     const offset = (page - 1) * pageSize;
 
-    const queryBuilder = this.productRepository.createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category');
+    const queryBuilder = this.productRepository
+      .createQueryBuilder("product")
+      .leftJoinAndSelect("product.category", "category");
 
     // Kateqoriya filtri
     if (categoryId) {
-      queryBuilder.andWhere('product.categoryId = :categoryId', { categoryId });
+      queryBuilder.andWhere("product.categoryId = :categoryId", { categoryId });
     }
 
     // Aktiv status filtri
     if (isActive !== undefined) {
-      queryBuilder.andWhere('product.isActive = :isActive', { isActive });
+      queryBuilder.andWhere("product.isActive = :isActive", { isActive });
     }
 
     // Multilingual axtarış (admin üçün bütün dillərdə)
@@ -136,41 +154,38 @@ export class ProductService {
           product.description ->> 'az' ILIKE :search OR 
           product.description ->> 'en' ILIKE :search OR 
           product.description ->> 'ru' ILIKE :search)`,
-        { search: `%${searchQuery}%` }
+        { search: `%${searchQuery}%` },
       );
     }
 
     // Sıralama (admin üçün)
     switch (sort) {
-      case 'az':
+      case "az":
         // A-Z sıralaması üçün sadə yanaşma
-        queryBuilder.orderBy('product.id', 'ASC');
+        queryBuilder.orderBy("product.id", "ASC");
         break;
-      case 'za':
+      case "za":
         // Z-A sıralaması üçün sadə yanaşma
-        queryBuilder.orderBy('product.id', 'DESC');
+        queryBuilder.orderBy("product.id", "DESC");
         break;
-      case 'newest':
-        queryBuilder.orderBy('product.createdAt', 'DESC');
+      case "newest":
+        queryBuilder.orderBy("product.createdAt", "DESC");
         break;
-      case 'oldest':
-        queryBuilder.orderBy('product.createdAt', 'ASC');
+      case "oldest":
+        queryBuilder.orderBy("product.createdAt", "ASC");
         break;
-      case 'most-viewed':
-        queryBuilder.orderBy('product.views', 'DESC');
+      case "most-viewed":
+        queryBuilder.orderBy("product.views", "DESC");
         break;
       default:
-        queryBuilder.orderBy('product.id', 'DESC');
+        queryBuilder.orderBy("product.id", "DESC");
     }
 
     // Ümumi sayı tapaq
     const totalItems = await queryBuilder.getCount();
 
     // Səhifələmə ilə məhsulları gətir
-    const products = await queryBuilder
-      .skip(offset)
-      .take(pageSize)
-      .getMany();
+    const products = await queryBuilder.skip(offset).take(pageSize).getMany();
 
     return {
       data: products,
@@ -184,35 +199,38 @@ export class ProductService {
   }
 
   async findOne(id: number, acceptLanguage?: string): Promise<any> {
-    const lang = acceptLanguage || 'az';
+    const lang = acceptLanguage || "az";
     const product = await this.productRepository.findOne({
       where: { id },
-      relations: ['category'],
+      relations: ["category"],
     });
 
     if (!product) {
-      throw new NotFoundException('Məhsul tapılmadı');
+      throw new NotFoundException("Məhsul tapılmadı");
     }
 
     return {
       ...product,
       name: this.i18n.translateField(product.name, lang),
       description: this.i18n.translateField(product.description, lang),
-      category: product.category ? {  // ✅ Null yoxlaması
-        ...product.category,
-        name: this.i18n.translateField(product.category.name, lang),
-      } : null,  // ✅ Category yoxdursa null qaytar
+      category: product.category
+        ? {
+            // ✅ Null yoxlaması
+            ...product.category,
+            name: this.i18n.translateField(product.category.name, lang),
+          }
+        : null, // ✅ Category yoxdursa null qaytar
     };
   }
 
   async findOneForAdmin(id: number): Promise<Product> {
     const product = await this.productRepository.findOne({
       where: { id },
-      relations: ['category'],
+      relations: ["category"],
     });
 
     if (!product) {
-      throw new NotFoundException('Məhsul tapılmadı');
+      throw new NotFoundException("Məhsul tapılmadı");
     }
 
     return product;
@@ -225,7 +243,7 @@ export class ProductService {
     });
 
     if (!category) {
-      throw new NotFoundException('Kateqoriya tapılmadı');
+      throw new NotFoundException("Kateqoriya tapılmadı");
     }
 
     const product = this.productRepository.create({
@@ -236,14 +254,17 @@ export class ProductService {
     return await this.productRepository.save(product);
   }
 
-  async update(id: number, updateProductDto: UpdateProductDto): Promise<Product> {
+  async update(
+    id: number,
+    updateProductDto: UpdateProductDto,
+  ): Promise<Product> {
     const product = await this.productRepository.findOne({
       where: { id },
-      relations: ['category'],
+      relations: ["category"],
     });
 
     if (!product) {
-      throw new NotFoundException('Məhsul tapılmadı');
+      throw new NotFoundException("Məhsul tapılmadı");
     }
 
     // ✅ Əgər categoryId dəyişdirilirsə
@@ -254,44 +275,45 @@ export class ProductService {
       // Yalnız fərqli categoryId-dirsə yoxla
       if (updateProductDto.categoryId !== currentCategoryId) {
         const category = await this.categoryRepository.findOne({
-          where: { 
+          where: {
             id: updateProductDto.categoryId,
           },
         });
 
         if (!category) {
-          throw new NotFoundException('Kateqoriya tapılmadı və ya silinib');
+          throw new NotFoundException("Kateqoriya tapılmadı və ya silinib");
         }
 
         product.category = category;
       }
-      
+
       // categoryId-ni DTO-dan sil
       delete updateProductDto.categoryId;
     }
 
     Object.assign(product, updateProductDto);
     const updated = await this.productRepository.save(product);
-    
+
     // ✅ Formatlanmış response qaytar
     return this.findOne(id);
   }
 
   async remove(id: number): Promise<{ message: string }> {
-    const product = await this.findOne(id);
-    
+    const product = await this.findOneForAdmin(id);
     await this.productRepository.remove(product);
-    return { message: 'Məhsul uğurla silindi' };
+    return { message: "Məhsul uğurla silindi" };
   }
 
-  async incrementViews(id: number): Promise<{ message: string; views: number }> {
+  async incrementViews(
+    id: number,
+  ): Promise<{ message: string; views: number }> {
     const product = await this.findOne(id);
-    
+
     product.views += 1;
     await this.productRepository.save(product);
-    
+
     return {
-      message: 'Baxış sayı artırıldı',
+      message: "Baxış sayı artırıldı",
       views: product.views,
     };
   }
