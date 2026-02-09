@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Promo } from '../_common/entities/promo.entity';
-import { Product } from '../_common/entities/product.entity';
-import { CreatePromoDto } from './dto/create-promo.dto';
-import { UpdatePromoDto } from './dto/update-promo.dto';
-import { PromoQueryDto } from './dto/promo-query.dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Promo } from "../_common/entities/promo.entity";
+import { Product } from "../_common/entities/product.entity";
+import { CreatePromoDto } from "./dto/create-promo.dto";
+import { UpdatePromoDto } from "./dto/update-promo.dto";
+import { PromoQueryDto } from "./dto/promo-query.dto";
 
 @Injectable()
 export class PromoService {
@@ -26,43 +30,60 @@ export class PromoService {
     return null;
   }
 
-  async findAll(query: PromoQueryDto): Promise<Promo[]> {
-    const queryBuilder = this.promoRepository.createQueryBuilder('promo')
-      .leftJoinAndSelect('promo.product', 'product');
+  async findAll(query: PromoQueryDto): Promise<{
+    data: Promo[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.promoRepository
+      .createQueryBuilder("promo")
+      .leftJoinAndSelect("promo.product", "product");
 
     // Aktiv status filtri
     if (query.isActive !== undefined) {
-      queryBuilder.andWhere('promo.isActive = :isActive', { isActive: query.isActive });
+      queryBuilder.andWhere("promo.isActive = :isActive", {
+        isActive: query.isActive,
+      });
     }
 
     // Məhsul ID filtri
     if (query.productId) {
-      queryBuilder.andWhere('promo.productId = :productId', { productId: query.productId });
+      queryBuilder.andWhere("promo.productId = :productId", {
+        productId: query.productId,
+      });
     }
 
     // Hazırda aktiv olan promoları filterlə
     if (query.current) {
       const now = new Date();
-      queryBuilder.andWhere('promo.startDate <= :now AND promo.endDate >= :now', { now });
+      queryBuilder.andWhere(
+        "promo.startDate <= :now AND promo.endDate >= :now",
+        { now },
+      );
     }
 
     // Tarix filtriləri
     if (query.startDateFrom) {
-      queryBuilder.andWhere('promo.startDate >= :startDateFrom', { 
-        startDateFrom: new Date(query.startDateFrom) 
+      queryBuilder.andWhere("promo.startDate >= :startDateFrom", {
+        startDateFrom: new Date(query.startDateFrom),
       });
     }
 
     if (query.startDateTo) {
-      queryBuilder.andWhere('promo.startDate <= :startDateTo', { 
-        startDateTo: new Date(query.startDateTo) 
+      queryBuilder.andWhere("promo.startDate <= :startDateTo", {
+        startDateTo: new Date(query.startDateTo),
       });
     }
 
     // Multilingual axtarış
-    if (query.search && query.search.trim() !== '') {
+    if (query.search && query.search.trim() !== "") {
       const searchTerm = `%${query.search.trim().toLowerCase()}%`;
-      
+
       // Bütün dillərdə axtarış
       queryBuilder.andWhere(
         `(
@@ -76,57 +97,64 @@ export class PromoService {
           LOWER(promo.description->>'en') LIKE LOWER(:search) OR 
           LOWER(promo.description->>'ru') LIKE LOWER(:search)
         )`,
-        { search: searchTerm }
+        { search: searchTerm },
       );
     }
 
     // Sıralama
     switch (query.sort) {
-      case 'newest':
-        queryBuilder.orderBy('promo.createdAt', 'DESC');
+      case "newest":
+        queryBuilder.orderBy("promo.createdAt", "DESC");
         break;
-      case 'oldest':
-        queryBuilder.orderBy('promo.createdAt', 'ASC');
+      case "oldest":
+        queryBuilder.orderBy("promo.createdAt", "ASC");
         break;
-      case 'start-date-asc':
-        queryBuilder.orderBy('promo.startDate', 'ASC');
+      case "start-date-asc":
+        queryBuilder.orderBy("promo.startDate", "ASC");
         break;
-      case 'start-date-desc':
-        queryBuilder.orderBy('promo.startDate', 'DESC');
+      case "start-date-desc":
+        queryBuilder.orderBy("promo.startDate", "DESC");
         break;
-      case 'end-date-asc':
-        queryBuilder.orderBy('promo.endDate', 'ASC');
+      case "end-date-asc":
+        queryBuilder.orderBy("promo.endDate", "ASC");
         break;
-      case 'end-date-desc':
-        queryBuilder.orderBy('promo.endDate', 'DESC');
+      case "end-date-desc":
+        queryBuilder.orderBy("promo.endDate", "DESC");
         break;
-      case 'title-az':
-        queryBuilder.orderBy("promo.title->>'az'", 'ASC');
+      case "title-az":
+        queryBuilder.orderBy("promo.title->>'az'", "ASC");
         break;
-      case 'title-za':
-        queryBuilder.orderBy("promo.title->>'az'", 'DESC');
+      case "title-za":
+        queryBuilder.orderBy("promo.title->>'az'", "DESC");
         break;
       default:
-        queryBuilder.orderBy('promo.startDate', 'DESC');
+        queryBuilder.orderBy("promo.startDate", "DESC");
     }
 
-    const promos = await queryBuilder.getMany();
+    queryBuilder.skip(skip).take(limit);
+
+    const [promos, total] = await queryBuilder.getManyAndCount();
 
     // Her promo üçün backgroundImg resolve et
-    return promos.map(promo => ({
-      ...promo,
-      backgroundImg: this.resolveImage(promo),
-    }));
+    return {
+      data: promos.map((promo) => ({
+        ...promo,
+        backgroundImg: this.resolveImage(promo),
+      })),
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number): Promise<Promo> {
     const promo = await this.promoRepository.findOne({
       where: { id },
-      relations: ['product'],
+      relations: ["product"],
     });
 
     if (!promo) {
-      throw new NotFoundException('Promo tapılmadı');
+      throw new NotFoundException("Promo tapılmadı");
     }
 
     // backgroundImg resolve et
@@ -142,7 +170,9 @@ export class PromoService {
     const endDate = new Date(createPromoDto.endDate);
 
     if (startDate >= endDate) {
-      throw new BadRequestException('Bitmə tarixi başlama tarixindən sonra olmalıdır');
+      throw new BadRequestException(
+        "Bitmə tarixi başlama tarixindən sonra olmalıdır",
+      );
     }
 
     // Məhsulun mövcudluğunu yoxla
@@ -151,7 +181,7 @@ export class PromoService {
     });
 
     if (!product) {
-      throw new NotFoundException('Məhsul tapılmadı');
+      throw new NotFoundException("Məhsul tapılmadı");
     }
 
     const promo = this.promoRepository.create({
@@ -162,7 +192,7 @@ export class PromoService {
     });
 
     const savedPromo = await this.promoRepository.save(promo);
-    
+
     // Relation ilə geri qaytar və image resolve et
     const promoWithProduct = await this.findOne(savedPromo.id);
     return promoWithProduct;
@@ -171,20 +201,26 @@ export class PromoService {
   async update(id: number, updatePromoDto: UpdatePromoDto): Promise<Promo> {
     const promo = await this.promoRepository.findOne({
       where: { id },
-      relations: ['product'],
+      relations: ["product"],
     });
 
     if (!promo) {
-      throw new NotFoundException('Promo tapılmadı');
+      throw new NotFoundException("Promo tapılmadı");
     }
 
     // Tarixi validasiya et (əgər dəyişdirilirsə)
     if (updatePromoDto.startDate || updatePromoDto.endDate) {
-      const startDate = updatePromoDto.startDate ? new Date(updatePromoDto.startDate) : promo.startDate;
-      const endDate = updatePromoDto.endDate ? new Date(updatePromoDto.endDate) : promo.endDate;
+      const startDate = updatePromoDto.startDate
+        ? new Date(updatePromoDto.startDate)
+        : promo.startDate;
+      const endDate = updatePromoDto.endDate
+        ? new Date(updatePromoDto.endDate)
+        : promo.endDate;
 
       if (startDate >= endDate) {
-        throw new BadRequestException('Bitmə tarixi başlama tarixindən sonra olmalıdır');
+        throw new BadRequestException(
+          "Bitmə tarixi başlama tarixindən sonra olmalıdır",
+        );
       }
 
       if (updatePromoDto.startDate) {
@@ -196,13 +232,16 @@ export class PromoService {
     }
 
     // Məhsul dəyişdirilirsə, mövcudluğunu yoxla
-    if (updatePromoDto.productId && updatePromoDto.productId !== promo.product.id) {
+    if (
+      updatePromoDto.productId &&
+      updatePromoDto.productId !== promo.product.id
+    ) {
       const product = await this.productRepository.findOne({
         where: { id: updatePromoDto.productId },
       });
 
       if (!product) {
-        throw new NotFoundException('Məhsul tapılmadı');
+        throw new NotFoundException("Məhsul tapılmadı");
       }
 
       promo.product = product;
@@ -210,9 +249,9 @@ export class PromoService {
 
     // Digər fieldləri yenilə
     Object.assign(promo, updatePromoDto);
-    
+
     const savedPromo = await this.promoRepository.save(promo);
-    
+
     // Image resolve et
     return {
       ...savedPromo,
@@ -222,29 +261,30 @@ export class PromoService {
 
   async remove(id: number): Promise<{ message: string }> {
     const promo = await this.promoRepository.findOne({ where: { id } });
-    
+
     if (!promo) {
-      throw new NotFoundException('Promo tapılmadı');
+      throw new NotFoundException("Promo tapılmadı");
     }
-    
+
     await this.promoRepository.remove(promo);
-    return { message: 'Promo uğurla silindi' };
+    return { message: "Promo uğurla silindi" };
   }
 
   async getCurrentPromos(): Promise<Promo[]> {
     const now = new Date();
-    
-    const queryBuilder = this.promoRepository.createQueryBuilder('promo')
-      .leftJoinAndSelect('promo.product', 'product')
-      .where('promo.isActive = :isActive', { isActive: true })
-      .andWhere('promo.startDate <= :now', { now })
-      .andWhere('promo.endDate >= :now', { now })
-      .orderBy('promo.startDate', 'DESC');
+
+    const queryBuilder = this.promoRepository
+      .createQueryBuilder("promo")
+      .leftJoinAndSelect("promo.product", "product")
+      .where("promo.isActive = :isActive", { isActive: true })
+      .andWhere("promo.startDate <= :now", { now })
+      .andWhere("promo.endDate >= :now", { now })
+      .orderBy("promo.startDate", "DESC");
 
     const promos = await queryBuilder.getMany();
 
     // Her promo üçün backgroundImg resolve et
-    return promos.map(promo => ({
+    return promos.map((promo) => ({
       ...promo,
       backgroundImg: this.resolveImage(promo),
     }));
