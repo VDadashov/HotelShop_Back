@@ -300,8 +300,25 @@ export class ProductService {
 
   async remove(id: number): Promise<{ message: string }> {
     const product = await this.findOneForAdmin(id);
-    await this.productRepository.remove(product);
-    return { message: "Məhsul uğurla silindi" };
+    try {
+      await this.productRepository.remove(product);
+      return { message: "Məhsul uğurla silindi" };
+    } catch (error) {
+      // Postgres və ya TypeORM error mesajında promo ilə bağlı constraint varsa, onu yoxla
+      if (
+        error?.message?.includes("promo") ||
+        error?.detail?.includes("promo") ||
+        error?.toString().includes("promo")
+      ) {
+        throw new Error(
+          "Bu məhsul Promo ilə əlaqəlidir və silinə bilməz. Əvvəlcə bağlı promonu silin.",
+        );
+      }
+      // Əlavə əlaqələr üçün bura əlavə yoxlamalar yazmaq olar
+      throw new Error(
+        "Məhsul silinərkən əlaqəli modelə görə silinə bilmədi. Əlaqəli məlumatları silin.",
+      );
+    }
   }
 
   async incrementViews(
