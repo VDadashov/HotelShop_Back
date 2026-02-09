@@ -27,6 +27,7 @@ const promo_module_1 = require("./promo/promo.module");
 const testimonial_module_1 = require("./testimonial/testimonial.module");
 const cart_module_1 = require("./cart/cart.module");
 const contact_module_1 = require("./contact/contact.module");
+const settings_module_1 = require("./settings/settings.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -35,7 +36,7 @@ exports.AppModule = AppModule = __decorate([
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
             typeorm_1.TypeOrmModule.forRootAsync(typeorm_config_1.typeOrmConfig),
-            passport_1.PassportModule.register({ defaultStrategy: 'jwt' }),
+            passport_1.PassportModule.register({ defaultStrategy: "jwt" }),
             i18n_module_1.I18nModule,
             upload_module_1.UploadModule,
             auth_module_1.AuthModule,
@@ -49,7 +50,8 @@ exports.AppModule = AppModule = __decorate([
             promo_module_1.PromoModule,
             testimonial_module_1.TestimonialModule,
             cart_module_1.CartModule,
-            contact_module_1.ContactModule
+            contact_module_1.ContactModule,
+            settings_module_1.SettingsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
