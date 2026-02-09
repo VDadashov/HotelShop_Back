@@ -116,7 +116,22 @@ export class PromoController {
       query.isActive = isActive;
     }
 
-    return await this.promoService.findAll(query, acceptLanguage, allLanguages);
+    const result = await this.promoService.findAll(
+      query,
+      acceptLanguage,
+      allLanguages,
+    );
+    return {
+      success: true,
+      data: result.data,
+      pagination: {
+        totalItems: result.total,
+        totalPages: Math.ceil(result.total / result.limit),
+        currentPage: result.page,
+        pageSize: result.limit,
+      },
+      message: "Məhsullar uğurla əldə edildi",
+    };
   }
 
   @Get("current")
