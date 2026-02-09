@@ -3,6 +3,7 @@ import {
   IsDefined,
   IsNotEmpty,
   IsObject,
+  IsOptional,
   IsString,
   ValidateNested,
 } from "class-validator";
@@ -21,17 +22,17 @@ class MultilingualTextDto {
     description: "İngilis dilində mətn",
     example: "HotelShop",
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  en: string;
+  en?: string;
 
   @ApiProperty({
     description: "Rus dilində mətn",
     example: "HotelShop",
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  ru: string;
+  ru?: string;
 }
 
 export class CreateSettingDto {
